@@ -4,7 +4,7 @@ GNU Emacs plugin to the Lojban dictionary [jbo](http://github.com/dag/jbo)
 
 ## Install Requirements
 
-* jbo
+* jbo:
 
     $ git clone http://github.com/dag/jbo.git ~/jbo && cd jbo
     $ sudo ./setup.py develop
@@ -14,7 +14,7 @@ GNU Emacs plugin to the Lojban dictionary [jbo](http://github.com/dag/jbo)
 
 ## How to install
 
-* Add the following lines to .emacs
+* Add the following lines to .emacs:
 
     (add-to-list 'load-path "path/to/directory/with/jbo.el")
     (require 'jbo)
