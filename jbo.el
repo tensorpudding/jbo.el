@@ -169,7 +169,7 @@
 
 (defun jbo-get-definition (valsi)
   "Query the jbo database for the definition of VALSI. If the definition exists return it, otherwise yield an error."
-  (let* ((command-string (concat "jbo get -d " valsi))
+  (let* ((command-string (concat "jbo get -d \"" valsi "\""))
 	(result (shell-command-to-string* command-string)))
     (if (string-prefix-p "error:" result)
 	(error (concat valsi ": not found"))
@@ -177,7 +177,7 @@
 
 (defun jbo-get-type (valsi)
   "Query the jbo database for the type of VALSI. If it exists, return it, otherwise yield an error."
-  (let* ((command-string (concat "jbo get -t " valsi))
+  (let* ((command-string (concat "jbo get -t \"" valsi "\""))
 	(result (shell-command-to-string* command-string)))
     (if (string-prefix-p "error:" result)
 	(error (concat valsi ": not found"))
@@ -185,7 +185,7 @@
 
 (defun jbo-get-cmavo-class (cmavo)
   "Query the jbo database for the class of CMAVO. If CMAVO is not a cmavo, returns the empty string, otherwise returns the class."
-  (let* ((command-string (concat "jbo get -c " cmavo))
+  (let* ((command-string (concat "jbo get -c \"" cmavo "\""))
 	 (result (shell-command-to-string* command-string)))
     (if (string-prefix-p "error:" result)
 	(error (concat cmavo ": not found"))
@@ -193,7 +193,7 @@
 
 (defun jbo-get-notes (valsi)
   "Query the jbovlaste database for notes attached to VALSI. If it exists, return it, otherwise yield an error."
-  (let* ((command-string (concat "jbo get -n " valsi))
+  (let* ((command-string (concat "jbo get -n \"" valsi "\""))
 	(result (shell-command-to-string* command-string)))
     (if (string-prefix-p "error:" result)
 	(error (concat valsi ": not found"))
@@ -226,14 +226,16 @@
   (jbo-lookup-definition (current-word)))
 
 (defun jbo-lookup-definition (valsi)
-  (let ((jbuff (get-buffer-create "*jbo*")))
-    (pop-to-buffer jbuff)
-    (setq buffer-read-only nil)
-    (erase-buffer)
-    (insert (jbo-text-former valsi))
-    (fit-window-to-buffer)
-    (jbo-linkifier)
-    (jbo-dict-mode)))
+  (let ((jbuff (get-buffer-create "*jbo*"))
+	(entry (jbo-text-former valsi)))
+    (if (not (string= "" entry))
+	(progn (pop-to-buffer jbuff)
+	       (setq buffer-read-only nil)
+	       (erase-buffer)
+	       (insert (jbo-text-former valsi))
+	       (fit-window-to-buffer)
+	       (jbo-linkifier)
+	       (jbo-dict-mode)))))
 
 (defvar jbo-dict-mode-link-map
   (let ((map (make-sparse-keymap)))
