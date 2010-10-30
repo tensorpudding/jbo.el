@@ -167,6 +167,7 @@
       (define-key map (kbd "q") 'delete-window)
       (define-key map (kbd "b") 'jbo-previous-definition)
       (define-key map (kbd "f") 'jbo-next-definition)
+      (define-key map (kbd "l") 'jbo-lookup)
       map)
     "Keymap for jbo-dict-mode")
 
