@@ -38,12 +38,12 @@
 ;;
 ;; TODO:
 ;;   * Add support for indexing automatically through emacs
-;;   * Add filter support
 ;;
 ;;
 ;; History:
 ;;   * 2010 October - First 0.0.1 release, with support for basic lookups,
 ;;     based on the git version of jbo.
+;;   * Added support for filtering
 ;;
 ;;----------------------------------------------------------------------------
 ;; Code:
@@ -65,28 +65,44 @@
 (defun jbo-lookup-at-point ()
   "Lookup valsi under point."
   (interactive)
-  (jbo-lookup-definition (current-word)))
+  (jbo-lookup-definition (current-word nil t)))
 
 (defun jbo-apropos-word (word)
   "Prompt user for word, then filter."
   (interactive "sFilter by word: ")
   (when (or (not (stringp word))
-	    (string-equal "" name))
+	    (string-equal "" word))
     (error "Need to specify a word."))
-  (jbo-lookup-matches))
+  (jbo-lookup-matches word))
 
 (defun jbo-lookup-definition (valsi)
   (let ((entry (jbo-get-definition valsi)))
     (if (not (string= "" entry))
-	(let ((parsed-text (jbo-prettifier entry)))
+	(let ((parsed-text (jbo-format-definition entry)))
 	  (jbo-get-buffer-create)
 	  (jbo-display-definition (ring-insert jbo-history parsed-text))))))
+
+(defun jbo-lookup-matches (word)
+  (let ((matches (jbo-filter-matches word)))
+    (if (not (string= "" matches))
+	(let ((match-list (jbo-format-matches matches)))
+	  (jbo-apropos-create word)
+	  (jbo-display-matches match-list)))))
 
 (defun jbo-get-buffer-create ()
   "If *jbo* buffer exists, pop to it, otherwise initialize it then pop to it."
   (let ((jbuff (get-buffer "*jbo*")))
     (if (not jbuff)
 	(progn (pop-to-buffer (get-buffer-create "*jbo*"))
+	       (jbo-dict-mode))
+      (pop-to-buffer jbuff))))
+
+(defun jbo-apropos-create (word)
+  "If *jbo: WORD* buffer exists, pop to it, otherwise initialize then pop to it."
+  (let* ((buff-name (concat "*jbo*: " word))
+	 (jbuff (get-buffer buff-name)))
+    (if (not jbuff)
+	(progn (pop-to-buffer (get-buffer-create buff-name))
 	       (jbo-dict-mode))
       (pop-to-buffer jbuff))))
 
@@ -112,15 +128,26 @@
   (fit-window-to-buffer)
   (setq buffer-read-only t))
 
-;;; The prettifier!
-(defun jbo-prettifier (entry)
-  "Prettifies the jbo dictionary entry by replicating the original bold formatting and by inserting cross-references."
-  (let* ((index 0)
-	 (word-regex "^[a-zA-Z']+")
+(defun jbo-display-matches (list)
+  "Display multiple definition matches."
+  (setq buffer-read-only nil)
+  (erase-buffer)
+  (insert list)
+  (fit-window-to-buffer)
+  (setq buffer-read-only t))
+
+(defun jbo-format-definition (entry)
+  "Format the jbo dictionary entry by replicating the original bold formatting and by inserting cross-references."
+  (let* ((word-regex "^[a-zA-Z']+")
 	 (link-regex "{[a-zA-Z']+}")
 	 (text (replace-regexp-in-string word-regex 'jbo-boldifier entry)))
     (replace-regexp-in-string link-regex 'jbo-linkifier text)))
 
+(defun jbo-format-matches (list)
+  "Take output from jbo and create links."
+  (let ((link-regex "[a-zA-Z']+\n"))
+    (concat "Matches: " (replace-regexp-in-string link-regex 'jbo-linkifier-prime list))))
+	 
 (defun jbo-boldifier (word)
   "Add bold text properties to word"
   (propertize word 'face 'bold))
@@ -131,6 +158,13 @@
 	      'face 'link
 	      'help-echo "RET: follow link"
 	      'keymap jbo-link-keymap))
+
+(defun jbo-linkifier-prime (word)
+  (concat (propertize (substring word 0 -1)
+		      'face 'link
+		      'help-echo "RET: follow link"
+		      'keymap jbo-link-keymap)
+	  " "))
 
 (defvar jbo-link-keymap
   (let ((map (make-sparse-keymap)))
@@ -148,10 +182,10 @@
 	(error (concat valsi ": not found"))
       result)))
 
-(defun jbo-filter-word (word)
+(defun jbo-filter-matches (word)
   "Query the jbo database, and filter entries which contain WORD, returning a list of corresponding valsi."
   (let* ((command-string (concat "jbo filter \"" word "\""))
-	 (result (shell-command-to-string* command-string)))
+	 (result (shell-command-to-string command-string)))
     (if (string= "" result)
 	(error (concat word ": no matches"))
       result)))
@@ -168,6 +202,7 @@
       (define-key map (kbd "b") 'jbo-previous-definition)
       (define-key map (kbd "f") 'jbo-next-definition)
       (define-key map (kbd "l") 'jbo-lookup)
+      (define-key map (kbd "a") 'jbo-apropos-word)
       map)
     "Keymap for jbo-dict-mode")
 
